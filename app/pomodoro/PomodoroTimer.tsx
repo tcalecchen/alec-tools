@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { localDateKey, useTodayKey } from "../_lib/date";
 import { createLocalStore } from "../_lib/local-store";
 
@@ -224,7 +224,10 @@ export default function PomodoroTimer() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div
+      className="grid items-start gap-6 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"
+      style={{ "--accent": accent, "--track": track, "--ink": ink, "--bg": bg } as CSSProperties}
+    >
       <section
         className="flex w-full flex-col items-center gap-6 rounded-3xl px-4 py-8 transition-colors duration-500"
         style={{ backgroundColor: bg, color: ink }}
@@ -375,71 +378,97 @@ export default function PomodoroTimer() {
         </div>
       </section>
 
-      <label className="flex w-full max-w-md flex-col gap-2">
-        <span className="text-sm font-semibold">現在要專注的事</span>
-        <input
-          type="text"
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-          placeholder="例如：寫完週報"
-          className="rounded-lg border border-black/15 bg-transparent px-3 py-2 outline-none focus:border-current dark:border-white/20"
-        />
-      </label>
+      {/* 右側面板：跟著目前模式換色，與左邊計時器同一套配色 */}
+      <aside className="flex flex-col gap-4 text-(--ink) transition-colors duration-500">
+        <label className="flex flex-col gap-3 rounded-3xl border-2 border-(--track) bg-white p-5 shadow-sm transition-colors duration-500">
+          <span className="flex items-center gap-3">
+            <span className="grid size-10 place-items-center rounded-2xl bg-(--bg) text-xl transition-colors duration-500">
+              🎯
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="font-bold">現在要專注的事</span>
+              <span className="text-xs opacity-60">會顯示在蕃茄上方與分頁標題</span>
+            </span>
+          </span>
+          <input
+            type="text"
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+            placeholder="例如：寫完週報"
+            className="rounded-xl border-2 border-(--track) bg-(--bg) px-4 py-2.5 text-[#3a2a28] outline-none transition placeholder:text-black/30 focus:border-(--accent)"
+          />
+        </label>
 
-      <details className="w-full max-w-md rounded-lg border border-black/10 p-4 dark:border-white/15">
-        <summary className="cursor-pointer font-semibold">設定</summary>
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          {(
-            [
-              ["work", "專注（分鐘）", 1, 180],
-              ["short", "短休息（分鐘）", 1, 60],
-              ["long", "長休息（分鐘）", 1, 120],
-              ["longEvery", "幾個蕃茄後長休息", 1, 12],
-            ] as const
-          ).map(([key, text, min, max]) => (
-            <label key={key} className="flex flex-col gap-1">
-              <span className="opacity-70">{text}</span>
-              <input
-                type="number"
-                min={min}
-                max={max}
-                value={settings[key]}
-                disabled={status !== "idle" && key === mode}
-                onChange={(e) => {
-                  if (e.target.value === "") return;
-                  updateSetting(key, clampInt(e.target.value, min, max, settings[key]));
-                }}
-                className="rounded-md border border-black/15 bg-transparent px-2 py-1.5 disabled:opacity-40 dark:border-white/20"
-              />
-            </label>
-          ))}
-          <label className="col-span-2 flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={settings.autoStart}
-              onChange={(e) => updateSetting("autoStart", e.target.checked)}
-              className="size-4"
-            />
-            時間到自動開始下一段
-          </label>
-          <label className="col-span-2 flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={settings.sound}
-              onChange={(e) => updateSetting("sound", e.target.checked)}
-              className="size-4"
-            />
-            時間到播放提示音
-          </label>
-          <button
-            type="button"
-            onClick={() => settingsStore.write(DEFAULT_SETTINGS)}
-            className="col-span-2 justify-self-start text-xs underline opacity-60 hover:opacity-100"
-          >
-            恢復預設值
-          </button>
-        </div>
-      </details>
+        <section className="flex flex-col gap-4 rounded-3xl border-2 border-(--track) bg-white p-5 text-sm shadow-sm transition-colors duration-500">
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 place-items-center rounded-2xl bg-(--bg) text-xl transition-colors duration-500">
+              ⚙️
+            </span>
+            <span className="text-base font-bold">設定</span>
+            <button
+              type="button"
+              onClick={() => settingsStore.write(DEFAULT_SETTINGS)}
+              className="ml-auto rounded-full px-3 py-1 text-xs font-semibold opacity-60 transition hover:bg-(--bg) hover:opacity-100"
+            >
+              ↺ 恢復預設
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {(
+              [
+                ["work", "專注", "分鐘", 1, 180],
+                ["short", "短休息", "分鐘", 1, 60],
+                ["long", "長休息", "分鐘", 1, 120],
+                ["longEvery", "長休息間隔", "個蕃茄", 1, 12],
+              ] as const
+            ).map(([key, text, unit, min, max]) => (
+              <label
+                key={key}
+                className="flex flex-col gap-1 rounded-2xl bg-(--bg) px-3 py-2.5 transition-colors duration-500 focus-within:ring-2 focus-within:ring-(--accent)"
+              >
+                <span className="text-xs font-semibold opacity-70">{text}</span>
+                <span className="flex items-baseline gap-1">
+                  <input
+                    type="number"
+                    min={min}
+                    max={max}
+                    value={settings[key]}
+                    disabled={status !== "idle" && key === mode}
+                    onChange={(e) => {
+                      if (e.target.value === "") return;
+                      updateSetting(key, clampInt(e.target.value, min, max, settings[key]));
+                    }}
+                    className="w-full min-w-0 bg-transparent text-2xl font-bold tabular-nums outline-none disabled:opacity-40"
+                  />
+                  <span className="shrink-0 text-xs opacity-60">{unit}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex flex-col divide-y divide-(--track) border-t-2 border-(--track)">
+            {(
+              [
+                ["autoStart", "時間到自動開始下一段"],
+                ["sound", "時間到播放提示音"],
+              ] as const
+            ).map(([key, text]) => (
+              <label key={key} className="flex cursor-pointer items-center justify-between gap-3 py-3">
+                <span className="font-medium">{text}</span>
+                <input
+                  type="checkbox"
+                  checked={settings[key]}
+                  onChange={(e) => updateSetting(key, e.target.checked)}
+                  className="peer sr-only"
+                />
+                {/* 自訂開關樣式 */}
+                <span className="relative h-6 w-11 shrink-0 rounded-full bg-black/15 transition peer-checked:bg-(--accent) peer-focus-visible:ring-2 peer-focus-visible:ring-(--accent) peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" />
+              </label>
+            ))}
+          </div>
+        </section>
+      </aside>
     </div>
   );
 }
