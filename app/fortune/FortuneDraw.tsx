@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { localDateKey, useTodayKey } from "../_lib/date";
 import { createLocalStore } from "../_lib/local-store";
-import { drawFortune, getLevel, LUCKY_COLORS, parseFortune, type Fortune } from "./fortune-data";
+import { CATEGORIES, drawFortune, getLevel, LUCKY_COLORS, parseFortune, type Fortune } from "./fortune-data";
 
 const SHAKE_DURATION_MS = 1600;
 const KAI_FONT = "'DFKai-SB', 'BiauKai', 'KaiTi', 'STKaiti', serif";
@@ -105,12 +105,20 @@ export default function FortuneDraw() {
   const todayKey = useTodayKey();
   const [shaking, setShaking] = useState(false);
   const [revealCount, setRevealCount] = useState(0); // 這次開啟頁面後抽了幾次，用來重播動畫
+  const [confirmingClear, setConfirmingClear] = useState(false);
 
   const fortune = !shaking && todayKey !== "" && stored.date === todayKey ? stored.fortune : null;
   const level = fortune ? getLevel(fortune.level) : null;
 
+  function clear() {
+    todayStore.write({ date: "", fortune: null });
+    setRevealCount(0);
+    setConfirmingClear(false);
+  }
+
   function draw() {
     if (shaking) return;
+    setConfirmingClear(false);
     setShaking(true);
     window.setTimeout(() => {
       todayStore.write({ date: localDateKey(), fortune: drawFortune() });
@@ -261,8 +269,64 @@ export default function FortuneDraw() {
 
       <section aria-live="polite">
         {!fortune || !level ? (
-          <div className="flex min-h-80 items-center justify-center rounded-2xl border-2 border-dashed border-current/20 p-8 text-center opacity-60">
-            {shaking ? "籤筒搖動中，馬上揭曉…" : "搖一搖籤筒，看看今天的運勢吧！"}
+          // 尚未抽籤：一張封著紅印的籤紙，預告會揭曉的內容
+          <div
+            className={`relative overflow-hidden rounded-2xl border-4 border-[#d9a428]/70 bg-[#fbf6ea] p-2 text-[#3b2f2f] shadow-xl ${shaking ? "animate-pulse" : ""}`}
+          >
+            <div className="relative flex flex-col gap-5 rounded-xl border-2 border-dashed border-[#c0262d]/25 bg-[radial-gradient(circle_at_50%_30%,#fffaf0_0%,#f6ecd6_100%)] p-6">
+              {/* 四角的回紋裝飾 */}
+              {["left-2 top-2 border-l-2 border-t-2", "right-2 top-2 border-r-2 border-t-2", "bottom-2 left-2 border-b-2 border-l-2", "bottom-2 right-2 border-b-2 border-r-2"].map(
+                (pos) => (
+                  <span key={pos} aria-hidden className={`absolute size-5 border-[#c0262d]/40 ${pos}`} />
+                ),
+              )}
+
+              <header className="flex items-stretch gap-4">
+                <div className="flex shrink-0 items-center justify-center rounded-lg bg-[#c0262d] px-3 py-4 text-[#fff4dc] shadow-md">
+                  <span
+                    className="text-4xl font-bold leading-none"
+                    style={{ writingMode: "vertical-rl", fontFamily: KAI_FONT, letterSpacing: "0.15em" }}
+                  >
+                    {shaking ? "搖籤中" : "待揭曉"}
+                  </span>
+                </div>
+                <div className="flex flex-col justify-center gap-2">
+                  <p className="text-sm text-black/45">第 ？ 籤・今日運勢</p>
+                  <p className="text-xl font-bold leading-relaxed" style={{ fontFamily: KAI_FONT }}>
+                    {shaking ? "籤筒搖動中，馬上揭曉…" : "搖一搖籤筒，看看今天的運勢吧！"}
+                  </p>
+                  <p className="text-xs text-black/40">每天的籤會記在這台裝置上，回來還看得到</p>
+                </div>
+              </header>
+
+              {/* 預告：抽完會出現的四項運勢 */}
+              <div className="grid grid-cols-2 gap-3">
+                {CATEGORIES.map((c) => (
+                  <div key={c.key} className="rounded-lg border border-black/5 bg-white/60 p-3">
+                    <p className="flex items-center justify-between text-sm font-bold">
+                      {c.label}
+                      <span className="tracking-widest text-black/15">★★★★★</span>
+                    </p>
+                    <span className="mt-2 block h-2 w-3/4 rounded-full bg-black/5" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-3 text-sm text-black/45">
+                <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c0262d]/30" />
+                <span style={{ fontFamily: KAI_FONT }}>幸運色・幸運數字・宜忌</span>
+                <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c0262d]/30" />
+              </div>
+
+              {/* 右下角的朱紅印章 */}
+              <span
+                aria-hidden
+                className="absolute bottom-5 right-5 grid size-14 rotate-[-12deg] place-items-center rounded-md border-2 border-[#c0262d]/50 text-xl font-bold text-[#c0262d]/50"
+                style={{ fontFamily: KAI_FONT }}
+              >
+                好運
+              </span>
+            </div>
           </div>
         ) : (
           <article
@@ -342,6 +406,38 @@ export default function FortuneDraw() {
                 🎋 傳統上抽到凶籤，會把籤紙綁在寺廟的樹枝上，把壞運留在那裡。今天就把煩惱留在這裡，輕鬆面對吧！
               </p>
             )}
+
+            {/* 清除今天的籤：按兩下才真的清掉，避免誤觸 */}
+            <footer className="flex items-center justify-end gap-2 border-t-2 border-dashed border-black/10 px-5 py-3 text-sm">
+              {confirmingClear ? (
+                <>
+                  <span className="mr-auto text-black/60">確定要清除這支籤嗎？</span>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(false)}
+                    className="rounded-full px-4 py-1.5 text-black/60 transition hover:bg-black/5"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={clear}
+                    className="rounded-full bg-[#c0262d] px-4 py-1.5 font-semibold text-white transition hover:brightness-110"
+                  >
+                    清除
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingClear(true)}
+                  className="rounded-full px-4 py-1.5 text-black/50 transition hover:bg-black/5 hover:text-black/80"
+                >
+                  🗑 清除這支籤
+                </button>
+              )}
+            </footer>
           </article>
         )}
       </section>
