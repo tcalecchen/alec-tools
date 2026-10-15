@@ -153,10 +153,29 @@ export default function LotteryWheel() {
 
   return (
     <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
-      <section className="flex flex-col gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="font-semibold">
-            抽獎名單 <span className="text-sm font-normal opacity-60">（共 {names.length} 人）</span>
+      <section className="relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-amber-300/30 bg-gradient-to-b from-[#16205e] via-[#0f1847] to-[#0a1033] p-5 text-white shadow-xl">
+        {/* 背景光暈，呼應右側轉盤的金色調 */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-amber-400/20 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 -left-12 size-44 rounded-full bg-indigo-500/25 blur-3xl"
+        />
+
+        <label className="relative flex flex-col gap-3">
+          <span className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-yellow-200 via-amber-400 to-orange-600 text-lg shadow-[0_0_14px_rgba(255,190,60,0.5)]">
+              🎫
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="text-lg font-bold tracking-wide text-amber-100">抽獎名單</span>
+              <span className="text-xs text-white/50">一行輸入一個名字</span>
+            </span>
+            <span className="ml-auto rounded-full border border-amber-300/50 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-200">
+              共 <span className="text-sm font-extrabold text-amber-300">{names.length}</span> 人
+            </span>
           </span>
           <textarea
             value={namesText}
@@ -167,35 +186,47 @@ export default function LotteryWheel() {
             disabled={spinning}
             rows={12}
             placeholder="一行輸入一個名字"
-            className="w-full resize-y rounded-lg border border-black/15 bg-transparent p-3 font-mono text-sm outline-none focus:border-indigo-500 disabled:opacity-60 dark:border-white/20"
+            className="w-full resize-y rounded-xl border border-white/15 bg-black/30 p-4 font-mono text-sm leading-7 text-white shadow-inner outline-none transition placeholder:text-white/30 focus:border-amber-300/70 focus:ring-2 focus:ring-amber-300/30 disabled:opacity-60"
           />
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="relative flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm transition hover:bg-white/10">
           <input
             type="checkbox"
             checked={removeWinner}
             onChange={(e) => setRemoveWinner(e.target.checked)}
-            className="size-4 accent-indigo-600"
+            className="peer sr-only"
           />
-          抽中後提供「從名單移除」按鈕（避免重複中獎）
+          {/* 自訂開關樣式 */}
+          <span className="relative h-6 w-11 shrink-0 rounded-full bg-white/20 transition peer-checked:bg-amber-400 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-300 after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" />
+          <span className="text-white/85">
+            抽中後提供「從名單移除」按鈕
+            <span className="block text-xs text-white/45">避免同一人重複中獎</span>
+          </span>
         </label>
 
         {history.length > 0 && (
-          <div className="rounded-lg border border-black/10 p-3 dark:border-white/15">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-semibold">中獎紀錄</span>
+          <div className="relative rounded-xl border border-amber-300/25 bg-black/25 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-bold text-amber-100">
+                🏆 中獎紀錄
+              </span>
               <button
                 type="button"
                 onClick={() => setHistory([])}
-                className="text-xs opacity-60 hover:opacity-100"
+                className="rounded-full px-2 py-0.5 text-xs text-white/50 transition hover:bg-white/10 hover:text-white"
               >
                 清除
               </button>
             </div>
-            <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <ol className="space-y-2 text-sm">
               {[...history].reverse().map((name, i) => (
-                <li key={`${name}-${i}`}>{name}</li>
+                <li key={`${name}-${i}`} className="flex items-center gap-3">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-yellow-200 to-amber-500 text-xs font-extrabold text-[#5c2a00]">
+                    {i + 1}
+                  </span>
+                  <span className="font-medium text-white/90">{name}</span>
+                </li>
               ))}
             </ol>
           </div>
